@@ -25,8 +25,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           <Route path="/results/:id/report" element={<Report />} />
 
           {/* Fallbacks */}
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/" element={<Navigate to="/signup" replace />} />
+          <Route path="*" element={<Navigate to="/signup" replace />} />
         </Routes>
       </BrowserRouter>
     </React.StrictMode>
