@@ -1,26 +1,36 @@
-export const SEVERITY = { red: '#D7263D', orange: '#F28C28', yellow: '#F2C94C', green: '#3FA66B' };
+// Only red — hotspots come from backend already classified.
+export const SEVERITY = { red: '#D7263D' };
+export const severityOf = () => 'red';
 
-export function severityOf(h) {
-  if (SEVERITY[h.severity]) return h.severity;
-  const s = Number(h.risk_score) || 0;
-  return s >= 0.75 ? 'red' : s >= 0.5 ? 'orange' : s >= 0.25 ? 'yellow' : 'green';
-}
+// MapLibre expects { longitude, latitude, zoom }
+export const NAIROBI_CENTER = { longitude: 36.8219, latitude: -1.2921, zoom: 11 };
 
-// 2M and below -> 6px, 50M and above -> 28px, linear in between
+// MapLibre bounds format: [[swLng, swLat], [neLng, neLat]]
+export const NAIROBI_BOUNDS = [
+  [36.65, -1.45],   // south-west
+  [37.10, -1.15],   // north-east
+];
+
+// TIV dot sizing: ≤ 2M → 4px, 2M–50M → linear 4→18px, ≥ 50M → 18px
+const MIN_TIV = 2_000_000;
+const MAX_TIV = 50_000_000;
+const MIN_PX  = 4;
+const MAX_PX  = 18;
+
 export function tivSize(tiv) {
-  const t = Math.min(1, Math.max(0, (Number(tiv) - 2e6) / 48e6));
-  return Math.round(6 + t * 22);
+  const v = Number(tiv) || 0;
+  if (v <= MIN_TIV) return MIN_PX;
+  if (v >= MAX_TIV) return MAX_PX;
+  const r = (v - MIN_TIV) / (MAX_TIV - MIN_TIV);
+  return Math.round(MIN_PX + r * (MAX_PX - MIN_PX));
 }
 
-export function kes(v, compact = true) {
-  if (v == null || isNaN(v)) return '—';
-  const n = Number(v);
-  if (!compact) return `KSh ${n.toLocaleString('en-KE', { maximumFractionDigits: 0 })}`;
-  if (n >= 1e9) return `KSh ${(n / 1e9).toFixed(2)}B`;
-  if (n >= 1e6) return `KSh ${(n / 1e6).toFixed(1)}M`;
-  if (n >= 1e3) return `KSh ${(n / 1e3).toFixed(0)}K`;
-  return `KSh ${n.toFixed(0)}`;
+export function kes(n, compact = true) {
+  const v = Number(n) || 0;
+  if (compact) {
+    if (Math.abs(v) >= 1e9) return `KSh ${(v / 1e9).toFixed(1)}B`;
+    if (Math.abs(v) >= 1e6) return `KSh ${(v / 1e6).toFixed(1)}M`;
+    if (Math.abs(v) >= 1e3) return `KSh ${(v / 1e3).toFixed(1)}K`;
+  }
+  return `KSh ${v.toLocaleString('en-KE')}`;
 }
-
-export const NAIROBI_CENTER = { longitude: 36.82, latitude: -1.29, zoom: 10.8 };
-export const NAIROBI_BOUNDS = [[36.6, -1.45], [37.05, -1.1]];
