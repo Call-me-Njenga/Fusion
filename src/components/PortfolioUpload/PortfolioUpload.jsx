@@ -1,7 +1,7 @@
 import './PortfolioUpload.css';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, Upload, Loader2, Pencil, Save, BrainCircuit, Database, Download, CheckCircle2, ChartNoAxesCombined, Mail } from 'lucide-react';
+import { X, Upload, Loader2, Pencil, Save, BrainCircuit, Database, Download, CheckCircle2, ChartNoAxesCombined, Mail, FlaskConical } from 'lucide-react';
 import { api } from '../../api';
 
 const PAGE_SIZE = 500;
@@ -205,6 +205,17 @@ function PortfolioCard({ file, onApproved }) {
     setNotice(result.sent ? `CSV sent to ${email}.` : 'Brevo did not confirm delivery.');
   });
 
+  const runAnalysis = () => runBusy(async () => {
+    await api.analyse(portfolio.id);
+    setNotice('Analysis complete. Opening portfolio analysis…');
+    navigate(`/analysis/${portfolio.id}`);
+  });
+
+  const sendAnalysisEmail = () => runBusy(async () => {
+    const result = await api.analyseEmail(portfolio.id, email, true);
+    setNotice(result.sent ? `Analysis report sent to ${email}.` : 'Brevo did not confirm delivery.');
+  });
+
   const download = () => runBusy(async () => {
     const blob = await api.downloadCSV(portfolio.id, token);
     const url = URL.createObjectURL(blob);
@@ -299,12 +310,15 @@ function PortfolioCard({ file, onApproved }) {
             {portfolio.status === 'confirmed' && <button className="btn ghost" onClick={download} disabled={busy}>
               {busy ? <Loader2 className="spin" size={14} /> : <Download size={14} />}Download approved CSV
             </button>}
-            {portfolio.status === 'confirmed' && <button className="btn blue" onClick={() => navigate(`/results/${portfolio.id}`)}>
+            {portfolio.status === 'confirmed' && <button className="btn red" onClick={runAnalysis} disabled={busy}>
+              {busy ? <Loader2 className="spin" size={14} /> : <FlaskConical size={14} />}Run analysis
+            </button>}
+            {portfolio.status === 'confirmed' && <button className="btn blue" onClick={() => navigate(`/analysis/${portfolio.id}`)}>
               <ChartNoAxesCombined size={14} />View results
             </button>}
-            {portfolio.status === 'confirmed' && <form className="email-export" onSubmit={(event) => { event.preventDefault(); sendEmail(); }}>
-              <input type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Send CSV to email" aria-label="Recipient email" />
-              <button className="btn ghost" disabled={busy}><Mail size={14} />Email CSV</button>
+            {portfolio.status === 'confirmed' && <form className="email-export" onSubmit={(event) => { event.preventDefault(); sendAnalysisEmail(); }}>
+              <input type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Send analysis report to email" aria-label="Recipient email" />
+              <button className="btn ghost" disabled={busy}><Mail size={14} />Email report</button>
             </form>}
           </div>
         </>}

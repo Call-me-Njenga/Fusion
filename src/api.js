@@ -120,7 +120,7 @@ export const api = {
       req(`/portfolios/${id}/results`, { headers }),
       req(`/portfolios/${id}/status`, { headers }),
     ]);
-    return { ...result, name: portfolio.name, status: portfolio.status };
+    return { ...result, name: portfolio.name };
   },
   explain: (id) => req(`/portfolios/${id}/explain`, {
     method: 'POST', headers: portfolioHeaders(id),
@@ -130,5 +130,11 @@ export const api = {
   }),
   generateReport: (id, title) => req(`/portfolios/${id}/report`, {
     method: 'PUT', headers: portfolioHeaders(id), body: { title },
+  }),
+  analyse: (id) => req(`/portfolios/${id}/analyse`, {
+    method: 'POST', headers: portfolioHeaders(id),
+  }),
+  analyseEmail: (id, email, attach_csv = false) => req(`/portfolios/${id}/analyse/email`, {
+    method: 'POST', headers: portfolioHeaders(id), body: { email, attach_csv },
   }),
 };

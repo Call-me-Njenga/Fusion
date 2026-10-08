@@ -21,6 +21,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           </Route>
 
           {/* Results + report are separate pages */}
+          <Route path="/analysis/:id" element={<Results />} />
           <Route path="/results/:id" element={<Results />} />
           <Route path="/results/:id/report" element={<Report />} />
 

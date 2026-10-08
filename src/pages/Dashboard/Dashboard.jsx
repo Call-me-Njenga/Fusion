@@ -72,8 +72,8 @@ export default function Dashboard() {
                         <li key={p.id}>
                             <button
                                 onClick={() =>
-                                    nav(p.status === 'predicted' || p.status === 'confirmed'
-                                        ? `/results/${p.id}`
+                                    nav(p.status === 'confirmed'
+                                        ? `/analysis/${p.id}`
                                         : '/portfolios')
                                 }
                             >

@@ -97,7 +97,7 @@ export default function Results() {
         <button className="btn red" onClick={explain} disabled={busy}>{busy ? <Loader2 className="spin" size={15} /> : <Sparkles size={15} />}{summary ? 'Refresh summary' : 'Generate summary'}</button>
       </div>{summary ? <p className="explain">{summary}</p> : <p className="empty">Generate a plain-language explanation of these portfolio results.</p>}</section>
       <Chat id={id} />
-      <p className="hint">Loss estimates use the model’s hazard scores and configured tier-rate assumptions. Review the assumptions before making financial decisions.</p>
+      <p className="hint">Loss estimates use the model's hazard scores and configured tier-rate assumptions. Review the assumptions before making financial decisions.</p>
     </div>
   );
 }
