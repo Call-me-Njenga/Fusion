@@ -1,11 +1,12 @@
+import '../Results/Results.css';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Loader2, Sparkles } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import NairobiMap from '../components/NairobiMap';
-import Legend from '../components/Legend';
-import { api} from '../api';
-import { kes } from '../utils';
+import NairobiMap from '../../components/NairobiMap/NairobiMap';
+import Legend from '../../components/Legend/Legend';
+import { api} from '../../api';
+import { kes } from '../../utils';
 
 /* Expected GET /portfolios/:id/results
 { status:'running'|'done'|'failed', name,

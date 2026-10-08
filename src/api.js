@@ -1,148 +1,134 @@
-// Every call below is a backend endpoint. Change paths here only.
+// Configure these in the frontend environment. In development Vite proxies /api.
 const API_PREFIX = import.meta.env.VITE_API_PREFIX || '/api/v1';
 const BACKEND = (import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '');
 const BASE = (import.meta.env.PROD ? BACKEND : '') + API_PREFIX;
+const ACCESS_KEY = 'fusion.auth.access_token';
+const REFRESH_KEY = 'fusion.auth.refresh_token';
+const USER_KEY = 'fusion.auth.user';
+const portfolioTokenKey = (id) => `fusion.portfolio.token.${id}`;
 
-// Set false once /api/v1/portfolios/* is live on the backend.
-const USE_MOCK = true;
+export const getAccessToken = () => sessionStorage.getItem(ACCESS_KEY);
+export const getPortfolioToken = (id) => sessionStorage.getItem(portfolioTokenKey(id));
+export const isSignedIn = () => Boolean(getAccessToken());
+
+function saveSession(auth) {
+  sessionStorage.setItem(ACCESS_KEY, auth.access_token);
+  if (auth.refresh_token) sessionStorage.setItem(REFRESH_KEY, auth.refresh_token);
+  if (auth.user) sessionStorage.setItem(USER_KEY, JSON.stringify(auth.user));
+}
+
+function clearSession() {
+  sessionStorage.removeItem(ACCESS_KEY);
+  sessionStorage.removeItem(REFRESH_KEY);
+  sessionStorage.removeItem(USER_KEY);
+}
 
 async function req(path, opts = {}) {
   const isForm = opts.body instanceof FormData;
+  const headers = {
+    ...(isForm ? {} : { 'Content-Type': 'application/json' }),
+    ...(getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {}),
+    ...(opts.headers || {}),
+  };
   const res = await fetch(BASE + path, {
     ...opts,
-    headers: isForm ? undefined : { 'Content-Type': 'application/json' },
+    headers,
     body: isForm || opts.body === undefined ? opts.body : JSON.stringify(opts.body),
   });
   if (!res.ok) {
-    let msg = `Request failed (${res.status})`;
+    let message = `Request failed (${res.status})`;
     try {
-      const j = await res.json();
-      msg = j.message || (typeof j.detail === 'string' ? j.detail : msg);
-    } catch { /* keep default */ }
-    throw new Error(msg);
+      const body = await res.json();
+      message = typeof body.detail === 'string' ? body.detail : (body.message || message);
+    } catch { /* retain status message */ }
+    throw new Error(message);
   }
   return res.status === 204 ? null : res.json();
 }
 
-// ---------------------------------------------------------------------------
-// Mock data — used only when USE_MOCK === true
-// ---------------------------------------------------------------------------
-const MOCK_LOCS = [
-  { loc_id: 'L001', lat: -1.2921, lon: 36.8219, tiv_kes: 5_000_000,  damage_ratio: 0.35, loss_kes: 1_750_000, housing_class: 'Residential' },
-  { loc_id: 'L002', lat: -1.2760, lon: 36.8000, tiv_kes: 12_000_000, damage_ratio: 0.28, loss_kes: 3_360_000, housing_class: 'Commercial' },
-  { loc_id: 'L003', lat: -1.3100, lon: 36.8500, tiv_kes: 3_000_000,  damage_ratio: 0.42, loss_kes: 1_260_000, housing_class: 'Residential' },
-  { loc_id: 'L004', lat: -1.2600, lon: 36.8300, tiv_kes: 55_000_000, damage_ratio: 0.15, loss_kes: 8_250_000, housing_class: 'Industrial' },
-  { loc_id: 'L005', lat: -1.3000, lon: 36.7800, tiv_kes: 22_000_000, damage_ratio: 0.22, loss_kes: 4_840_000, housing_class: 'Commercial' },
-  { loc_id: 'L006', lat: -1.2450, lon: 36.8900, tiv_kes: 8_000_000,  damage_ratio: 0.33, loss_kes: 2_640_000, housing_class: 'Residential' },
-  { loc_id: 'L007', lat: -1.3300, lon: 36.7700, tiv_kes: 1_800_000,  damage_ratio: 0.50, loss_kes:   900_000, housing_class: 'Residential' },
-  { loc_id: 'L008', lat: -1.2850, lon: 36.8500, tiv_kes: 40_000_000, damage_ratio: 0.18, loss_kes: 7_200_000, housing_class: 'Industrial' },
-];
+function portfolioHeaders(id, token) {
+  const accessToken = token || getPortfolioToken(id);
+  if (!accessToken) throw new Error('This portfolio token is missing. Upload the file again to continue.');
+  return { 'X-Portfolio-Token': accessToken };
+}
 
-const MOCK_TOTAL_TIV  = MOCK_LOCS.reduce((s, l) => s + l.tiv_kes, 0);
-const MOCK_TOTAL_LOSS = MOCK_LOCS.reduce((s, l) => s + l.loss_kes, 0);
-
-const MOCK = {
-  portfolios: [{
-    id: 'demo',
-    name: 'Westlands Demo Portfolio',
-    status: 'analyzed',
-    created_at: new Date().toISOString(),
-  }],
-
-  upload: { id: 'demo' },
-
-  portfolio: {
-    id: 'demo',
-    name: 'Westlands Demo Portfolio',
-    status: 'ready',
-    rows: MOCK_LOCS.map((l) => ({
-      loc_id: l.loc_id,
-      lat: l.lat,
-      lon: l.lon,
-      housing_class: l.housing_class,
-      tiv_kes: l.tiv_kes,
-    })),
-  },
-
-  results: {
-    id: 'demo',
-    status: 'done',
-    name: 'Westlands Demo Portfolio',
-    total_tiv: MOCK_TOTAL_TIV,
-    total_loss: MOCK_TOTAL_LOSS,
-    pipeline: [
-      { step: 'Data ingestion',           detail: 'Extracted 8 locations from upload' },
-      { step: 'Exposure from LLM',        detail: 'Inferred housing class and structure type' },
-      { step: 'ML exposure estimate',     detail: 'Refined TIV per building' },
-      { step: 'CAT model',                detail: 'Vulnerability function applied per class' },
-      { step: 'Loss metrics',             detail: 'Damage ratio × TIV, portfolio loss, EP curve' },
-      { step: 'LLM explanation',          detail: 'Drafted summary for the reinsurer' },
-    ],
-    assumptions: [
-      { label: 'Flood depth model', value: 'JBA 30m return-period grid' },
-      { label: 'Damage function',   value: 'HAZUS flood, residential' },
-      { label: 'Currency',          value: 'KES' },
-      { label: 'Portfolio as-of',   value: new Date().toLocaleDateString('en-KE') },
-    ],
-    explanation:
-        'This is a demo explanation. The Westlands portfolio carries the largest single loss because building L004 has the highest insured value in the book. Losses concentrate in the three low-lying clusters near the Nairobi River.',
-    ep_curve: [
-      { return_period: 10,  loss: 1_200_000 },
-      { return_period: 25,  loss: 3_500_000 },
-      { return_period: 50,  loss: 8_100_000 },
-      { return_period: 100, loss: 14_500_000 },
-      { return_period: 200, loss: 22_000_000 },
-      { return_period: 500, loss: 30_500_000 },
-    ],
-    locations: MOCK_LOCS,
-  },
-
-  reply:
-      'Based on the demo portfolio, L004 dominates the loss because of its 55M TIV. Focus underwriting attention on L004 and L007 — the latter has the highest damage ratio at 50%.',
-};
-
-// ---------------------------------------------------------------------------
-// Public API
-// ---------------------------------------------------------------------------
 export const api = {
-  hotspots: () => req('/hotspots'),
-
-  portfolios: () => USE_MOCK ? Promise.resolve(MOCK.portfolios) : req('/portfolios'),
-
-  upload: (file, name) => {
-    if (USE_MOCK) return Promise.resolve(MOCK.upload);
-    const f = new FormData();
-    f.append('file', file);
-    f.append('name', name);
-    return req('/portfolios/upload', { method: 'POST', body: f });
+  signup: async (credentials) => {
+    const auth = await req('/auth/signup', { method: 'POST', body: credentials });
+    saveSession(auth);
+    return auth;
   },
+  signin: async (credentials) => {
+    const auth = await req('/auth/signin', { method: 'POST', body: credentials });
+    saveSession(auth);
+    return auth;
+  },
+  signout: async () => {
+    const refreshToken = sessionStorage.getItem(REFRESH_KEY);
+    try {
+      if (refreshToken) await req('/auth/signout', { method: 'POST', body: { refresh_token: refreshToken } });
+    } finally { clearSession(); }
+  },
+  hotspots: () => req('/hotspots'),
+  portfolios: ({ limit = 100, offset = 0 } = {}) =>
+    req(`/portfolios?limit=${limit}&offset=${offset}`),
 
-  portfolio: (id) => USE_MOCK ? Promise.resolve(MOCK.portfolio) : req(`/portfolios/${id}`),
-
-  saveRows: (id, body) =>
-      USE_MOCK ? Promise.resolve() : req(`/portfolios/${id}/rows`, { method: 'PUT', body }),
-
-  approve: (id) =>
-      USE_MOCK ? Promise.resolve() : req(`/portfolios/${id}/approve`, { method: 'POST' }),
-
-  exportUrl: (id, format) => `${BASE}/portfolios/${id}/export?format=${format}`,
-
-  analyze: (id) =>
-      USE_MOCK ? Promise.resolve() : req(`/portfolios/${id}/analyze`, { method: 'POST' }),
-
-  results: (id) =>
-      USE_MOCK ? Promise.resolve(MOCK.results) : req(`/portfolios/${id}/results`),
-
-  explain: (id) =>
-      USE_MOCK
-          ? Promise.resolve({ explanation: MOCK.results.explanation })
-          : req(`/portfolios/${id}/explain`, { method: 'POST' }),
-
-  saveReport: (id, body) =>
-      USE_MOCK ? Promise.resolve() : req(`/portfolios/${id}/report`, { method: 'PUT', body }),
-
-  chat: (id, messages) =>
-      USE_MOCK
-          ? Promise.resolve({ reply: MOCK.reply })
-          : req(`/portfolios/${id}/chat`, { method: 'POST', body: { messages } }),
+  upload: async (file, name) => {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('name', name);
+    const portfolio = await req('/portfolios', { method: 'POST', body: form });
+    sessionStorage.setItem(portfolioTokenKey(portfolio.id), portfolio.access_token);
+    return portfolio;
+  },
+  portfolioStatus: (id, token) => req(`/portfolios/${id}/status`, {
+    headers: portfolioHeaders(id, token),
+  }),
+  preview: (id, token, { limit = 500, offset = 0 } = {}) =>
+    req(`/portfolios/${id}/preview?limit=${limit}&offset=${offset}`, {
+      headers: portfolioHeaders(id, token),
+    }),
+  saveRows: (id, token, records) => req(`/portfolios/${id}/preview`, {
+    method: 'PATCH', headers: portfolioHeaders(id, token), body: { records },
+  }),
+  predict: (id, token) => req(`/portfolios/${id}/predict`, {
+    method: 'POST', headers: portfolioHeaders(id, token),
+  }),
+  confirm: (id, token) => req(`/portfolios/${id}/confirm`, {
+    method: 'POST', headers: portfolioHeaders(id, token),
+  }),
+  downloadCSV: async (id, token) => {
+    const res = await fetch(`${BASE}/portfolios/${id}/export.csv`, {
+      headers: {
+        ...(getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {}),
+        ...portfolioHeaders(id, token),
+      },
+    });
+    if (!res.ok) {
+      let message = `Request failed (${res.status})`;
+      try { const body = await res.json(); message = body.detail || message; } catch { /* keep default */ }
+      throw new Error(message);
+    }
+    return res.blob();
+  },
+  emailCSV: (id, email) => req(`/portfolios/${id}/email`, {
+    method: 'POST', headers: portfolioHeaders(id), body: { email },
+  }),
+  results: async (id) => {
+    const headers = portfolioHeaders(id);
+    const [result, portfolio] = await Promise.all([
+      req(`/portfolios/${id}/results`, { headers }),
+      req(`/portfolios/${id}/status`, { headers }),
+    ]);
+    return { ...result, name: portfolio.name, status: portfolio.status };
+  },
+  explain: (id) => req(`/portfolios/${id}/explain`, {
+    method: 'POST', headers: portfolioHeaders(id),
+  }),
+  chat: (id, messages) => req(`/portfolios/${id}/chat`, {
+    method: 'POST', headers: portfolioHeaders(id), body: { messages },
+  }),
+  generateReport: (id, title) => req(`/portfolios/${id}/report`, {
+    method: 'PUT', headers: portfolioHeaders(id), body: { title },
+  }),
 };

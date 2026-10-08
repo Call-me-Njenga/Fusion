@@ -1,12 +1,13 @@
+import './Dashboard.css';
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Plus, FileText, MapPin } from 'lucide-react';
-import NairobiMap from '../components/NairobiMap';
-import Legend from '../components/Legend';
-import Portfolios from '../components/Portfolios';
-import TopNav from '../components/TopNav';
-import { api } from '../api';
-import { SEVERITY } from '../utils';
+import NairobiMap from '../../components/NairobiMap/NairobiMap';
+import Legend from '../../components/Legend/Legend';
+import Portfolios from '../../components/PortfolioUpload/PortfolioUpload';
+import TopNav from '../../components/TopNav/TopNav';
+import { api } from '../../api';
+import { SEVERITY } from '../../utils';
 
 const latOf = (h) => Number(h.lat ?? h.latitude);
 const lonOf = (h) => Number(h.lon ?? h.longitude);
@@ -19,7 +20,7 @@ export default function Dashboard() {
     const [history, setHistory] = useState([]);
     const [mapError, setMapError] = useState('');
 
-    // Silent — backend /portfolios doesn't exist yet, so don't scare the user.
+    // Portfolio history requires a signed-in user; anonymous uploads remain available.
     const loadHistory = () =>
         api.portfolios()
             .then(setHistory)
@@ -71,7 +72,7 @@ export default function Dashboard() {
                         <li key={p.id}>
                             <button
                                 onClick={() =>
-                                    nav(p.status === 'analyzed' || p.status === 'approved'
+                                    nav(p.status === 'predicted' || p.status === 'confirmed'
                                         ? `/results/${p.id}`
                                         : '/portfolios')
                                 }

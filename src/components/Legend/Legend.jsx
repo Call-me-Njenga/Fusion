@@ -1,4 +1,5 @@
-import { SEVERITY } from '../utils';
+import './Legend.css';
+import { SEVERITY } from '../../utils';
 
 export default function Legend({ showSize }) {
   return (

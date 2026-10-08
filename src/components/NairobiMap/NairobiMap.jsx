@@ -1,7 +1,8 @@
+import './NairobiMap.css';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Map, Marker, Popup, Source, Layer } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { SEVERITY, severityOf, tivSize, kes, NAIROBI_CENTER, NAIROBI_BOUNDS } from '../utils';
+import { SEVERITY, severityOf, tivSize, kes, NAIROBI_CENTER, NAIROBI_BOUNDS } from '../../utils';
 
 const STYLE = {
   version: 8,

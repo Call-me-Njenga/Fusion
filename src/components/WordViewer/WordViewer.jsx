@@ -1,3 +1,4 @@
+import './WordViewer.css';
 import { X } from 'lucide-react';
 
 export default function WordViewer({ url, onClose }) {

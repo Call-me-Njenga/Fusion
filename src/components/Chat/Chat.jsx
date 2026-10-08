@@ -1,6 +1,7 @@
+import './Chat.css';
 import { useEffect, useRef, useState } from 'react';
 import { Send, Loader2 } from 'lucide-react';
-import { api } from '../api';
+import { api } from '../../api';
 
 const IDEAS = ['Which buildings drive most of the loss?', 'What does the exceedance curve tell me?', 'Which assumptions matter most?'];
 
