@@ -39,7 +39,7 @@ export default function Results() {
     setExplaining(false);
   };
 
-  const back = <Link to="/" className="back"><ArrowLeft size={16} />Back to dashboard</Link>;
+  const back = <Link to="/dashboard" className="back"><ArrowLeft size={16} />Back to dashboard</Link>;
   if (error && !data) return <div className="page">{back}<p className="error banner">{error}</p></div>;
   if (!data || data.status === 'running') return <div className="page center"><Loader2 className="spin" size={28} /><p>Running the flood loss model. This can take a minute.</p></div>;
   if (data.status === 'failed') return <div className="page">{back}<p className="error banner">The analysis failed. Check the portfolio and run it again.</p></div>;

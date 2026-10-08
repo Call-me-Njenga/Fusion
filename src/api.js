@@ -1,5 +1,8 @@
 // Every call below is a backend endpoint. Change paths here only.
-const BASE = import.meta.env.VITE_API_URL || '/api/v1';
+const API_PREFIX = import.meta.env.VITE_API_PREFIX || "/api/v1";
+const BACKEND = (import.meta.env.VITE_BACKEND_URL || "").replace(/\/$/, "");
+// Dev: relative URLs, so the Vite proxy handles them. Production: the full backend URL if set, otherwise relative (Vercel rewrite).
+const BASE = (import.meta.env.PROD ? BACKEND : "") + API_PREFIX;
 
 async function req(path, opts = {}) {
   const isForm = opts.body instanceof FormData;

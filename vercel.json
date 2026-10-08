@@ -3,4 +3,3 @@
     { "source": "/api/:path*", "destination": "https://fusion-backend-7qlm.onrender.com/api/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
-}
